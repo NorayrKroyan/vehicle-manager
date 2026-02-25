@@ -1,0 +1,32 @@
+@import "tailwindcss";
+
+/* --- Vehicle Manager: vue-select (same pattern as Contact/Driver project) --- */
+.v-select { width: 100%; }
+.v-select .vs__dropdown-toggle {
+    border: 1px solid #d1d5db;
+    border-radius: 0.5rem;
+    padding: 0.45rem 0.6rem;
+    min-height: 40px;
+    font-size: 0.875rem;
+    background: #fff;
+}
+.v-select .vs__selected-options { flex-wrap: nowrap; }
+.v-select .vs__selected { margin: 0; }
+.v-select .vs__search { margin: 0; }
+
+.v-select .vs__dropdown-menu {
+    border: 1px solid #e5e7eb;
+    border-radius: 0.5rem;
+    box-shadow: 0 10px 20px rgba(0,0,0,0.08);
+    z-index: 99999; /* important for modals */
+}
+
+/* make options readable (your screenshot shows large/odd spacing) */
+.v-select .vs__dropdown-option {
+    padding: 10px 12px;
+    font-size: 0.875rem;
+}
+.v-select .vs__dropdown-option--highlight {
+    background: #f3f4f6;
+    color: #111827;
+}
