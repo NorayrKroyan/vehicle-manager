@@ -160,7 +160,7 @@
     <VehicleModal
         :open="vmModal.open.value"
         :mode="vmModal.mode.value"
-        :saving="vmModal.saving.value"
+        :saving="vmModal.saving.value || vmModal.deleting.value"
         :errors="vmModal.errors.value"
         :form="vmModal.form"
         :lookups="vm.lookups.value"
@@ -168,6 +168,7 @@
         :insuranceProviderOptions="vmModal.insuranceProviderOptions"
         @close="vmModal.close()"
         @save="vmModal.save().then(afterSave)"
+        @delete="vmModal.del().then(async (r) => { if (r?.ok) await vm.reloadList() })"
     />
 
     <!-- DOC MODAL -->

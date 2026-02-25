@@ -86,18 +86,20 @@
 
           <!-- RIGHT COL -->
           <div class="space-y-2">
-            <RowField :label="numberLabel" :err="errors?.vehicle_number" v-slot="{ hasError }">
+            <!-- ✅ Truck/Trailer Number comes from DB: vehicle_name -->
+            <RowField :label="numberLabel" :err="errors?.vehicle_name" v-slot="{ hasError }">
               <input
-                  v-model="form.vehicle_number"
+                  v-model="form.vehicle_name"
                   type="text"
                   :class="['input', hasError && 'input-error']"
                   placeholder="Number"
               />
             </RowField>
 
-            <RowField label="License Plate/State:" :err="errors?.license_plate" v-slot="{ hasError }">
+            <!-- ✅ License Plate comes from DB: vehicle_number -->
+            <RowField label="License Plate:" :err="errors?.vehicle_number" v-slot="{ hasError }">
               <input
-                  v-model="form.license_plate"
+                  v-model="form.vehicle_number"
                   type="text"
                   :class="['input', hasError && 'input-error']"
                   placeholder="Plate"
@@ -156,7 +158,6 @@
         <!-- TABS -->
         <div class="mt-4 border-b border-gray-200">
           <nav class="-mb-px flex items-center gap-6">
-            <!-- Assignment -->
             <button
                 type="button"
                 class="whitespace-nowrap border-b-2 px-1 pb-2 text-sm font-medium"
@@ -167,7 +168,6 @@
               Assignment History
             </button>
 
-            <!-- Documents -->
             <button
                 type="button"
                 class="whitespace-nowrap border-b-2 px-1 pb-2 text-sm font-medium"
@@ -178,7 +178,6 @@
               Documents
             </button>
 
-            <!-- Rental -->
             <button
                 type="button"
                 class="whitespace-nowrap border-b-2 px-1 pb-2 text-sm font-medium"
@@ -323,7 +322,6 @@
                       </a>
                     </div>
 
-                    <!-- viewer -->
                     <div
                         ref="viewerEl"
                         class="mt-2 rounded-lg border bg-white overflow-auto"
@@ -435,24 +433,38 @@
     </div>
 
     <template #footer>
-      <div class="flex w-full items-center justify-end gap-3">
+      <div class="flex w-full items-center justify-between gap-3">
         <button
+            v-if="mode === 'edit'"
             type="button"
-            class="rounded-xl border border-gray-300 bg-white px-6 py-3 text-sm hover:bg-gray-50"
+            class="rounded-xl border border-red-300 bg-white px-6 py-3 text-sm font-semibold text-red-700 hover:bg-red-50 disabled:opacity-50"
             :disabled="saving"
-            @click="$emit('close')"
+            @click="$emit('delete')"
         >
-          Cancel
+          Delete
         </button>
 
-        <button
-            type="button"
-            class="rounded-xl bg-gray-900 px-8 py-3 text-sm font-semibold text-white hover:bg-gray-800 disabled:opacity-50"
-            :disabled="saving"
-            @click="$emit('save')"
-        >
-          Save
-        </button>
+        <div v-else></div>
+
+        <div class="flex items-center justify-end gap-3">
+          <button
+              type="button"
+              class="rounded-xl border border-gray-300 bg-white px-6 py-3 text-sm hover:bg-gray-50"
+              :disabled="saving"
+              @click="$emit('close')"
+          >
+            Cancel
+          </button>
+
+          <button
+              type="button"
+              class="rounded-xl bg-gray-900 px-8 py-3 text-sm font-semibold text-white hover:bg-gray-800 disabled:opacity-50"
+              :disabled="saving"
+              @click="$emit('save')"
+          >
+            Save
+          </button>
+        </div>
       </div>
     </template>
   </Modal>
@@ -484,16 +496,13 @@ const props = defineProps({
   lookups: { type: Object, default: () => ({}) },
 })
 
-defineEmits(['close', 'save'])
+defineEmits(['close', 'save', 'delete'])
 
 const form = props.form
 
 const hasId = computed(() => Number(form?.id || 0) > 0)
-
-// ✅ create: disable these until saved (id exists)
 const canAssignmentsDocs = computed(() => hasId.value)
 
-// ✅ rental becomes enabled when billing is checked (create/edit)
 const billingEnabled = computed(() => Number(form.billing_active) === 1)
 const canRental = computed(() => billingEnabled.value)
 
@@ -553,8 +562,6 @@ function onTabClick(tab) {
 }
 
 const selectedDocIndex = ref(0)
-
-/** Pagination for left list (no scrolling) */
 const docPage = ref(1)
 const docPageSize = ref(8)
 
@@ -583,9 +590,6 @@ const selectedDoc = computed(() => {
   return documents.value[i] || documents.value[0] || null
 })
 
-/**
- * ✅ Make modal follow viewer resize
- */
 const modalRef = ref(null)
 const viewerEl = ref(null)
 
@@ -650,12 +654,8 @@ watch(
         return
       }
 
-      // default tab on open:
-      // - if billing is enabled -> Rental
-      // - else -> Assignment (will be disabled in create, but still visually consistent)
       activeTab.value = billingEnabled.value ? 'rental' : 'assignment'
 
-      // only load data if id exists
       if (activeTab.value === 'assignment' && hasId.value) loadAssignments()
       if (activeTab.value === 'documents' && hasId.value) loadDocuments()
     }
@@ -664,9 +664,7 @@ watch(
 watch(
     () => Number(form.billing_active),
     (v, prev) => {
-      // when turned on -> go to Rental
       if (v === 1 && prev !== 1) activeTab.value = 'rental'
-      // when turned off and currently on rental -> back to assignment
       if (v !== 1 && activeTab.value === 'rental') activeTab.value = 'assignment'
     }
 )
@@ -747,6 +745,4 @@ onBeforeUnmount(() => teardownViewerObserver())
   z-index: 60;
 }
 :deep(.vs__dropdown-menu){ position: absolute; }
-
-
 </style>

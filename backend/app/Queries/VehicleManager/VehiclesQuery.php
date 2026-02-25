@@ -152,4 +152,9 @@ class VehiclesQuery
         $payload['date_modified'] = time();
         DB::table('vehicle')->where('id_vehicle', $id)->update($payload);
     }
+
+    public function delete(int $id): void
+    {
+        DB::table('vehicle')->where('id_vehicle', $id)->update(['is_deleted' => 1]);
+    }
 }

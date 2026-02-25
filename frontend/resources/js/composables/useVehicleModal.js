@@ -3,6 +3,7 @@ import { reactive, ref, computed } from 'vue'
 import {
     apiVmCreateVehicle,
     apiVmUpdateVehicle,
+    apiVmDeleteVehicle,
     apiVmAssignments,
     apiVmDocuments,
 } from '@/api/vehicle-manager'
@@ -94,6 +95,7 @@ export function useVehicleModal() {
     const open = ref(false)
     const mode = ref('create') // create|edit
     const saving = ref(false)
+    const deleting = ref(false)
     const errors = ref({})
 
     const insuranceProviderOptions = [
@@ -107,8 +109,13 @@ export function useVehicleModal() {
         id: null,
 
         id_vehicle_type: null,
+
+        // ✅ Truck/Trailer Number in DB
         vehicle_name: '',
+
+        // ✅ License Plate in DB
         vehicle_number: '',
+
         vehicle_vin: '',
         vehicle_year: null,
 
@@ -119,8 +126,6 @@ export function useVehicleModal() {
         owner: '',
         insurance_provider: null,
 
-        // ✅ NEW FIELDS (match DB)
-        license_plate: '',
         registration_state_id: null,
 
         billing_active: 0,
@@ -132,6 +137,7 @@ export function useVehicleModal() {
     })
 
     const billingOn = computed(() => Number(form.billing_active) === 1)
+    const canDelete = computed(() => mode.value === 'edit' && Number(form.id || 0) > 0)
 
     function reset() {
         errors.value = {}
@@ -150,8 +156,6 @@ export function useVehicleModal() {
         form.owner = ''
         form.insurance_provider = 4
 
-        // ✅ reset new fields
-        form.license_plate = ''
         form.registration_state_id = null
 
         form.billing_active = 0
@@ -179,8 +183,13 @@ export function useVehicleModal() {
 
         form.id = v.id
         form.id_vehicle_type = v.id_vehicle_type
+
+        // ✅ Truck/Trailer Number
         form.vehicle_name = v.vehicle_name || ''
+
+        // ✅ License Plate
         form.vehicle_number = v.vehicle_number || ''
+
         form.vehicle_vin = v.vehicle_vin || ''
         form.vehicle_year = v.vehicle_year ?? null
 
@@ -190,8 +199,6 @@ export function useVehicleModal() {
         form.owner = v.owner || ''
         form.insurance_provider = (v.insurance_provider == null ? null : Number(v.insurance_provider))
 
-        // ✅ load from API list/show result
-        form.license_plate = v.license_plate || ''
         form.registration_state_id = (v.registration_state_id == null ? null : Number(v.registration_state_id))
 
         form.billing_active = Number(v.billing_active || 0)
@@ -200,10 +207,6 @@ export function useVehicleModal() {
         form.daily_rental_rate = v.daily_rental_rate ?? null
         form.weekly_rental_rate = v.weekly_rental_rate ?? null
         form.payment_dom = v.payment_dom ?? null
-
-        // optional: preload history
-        // loadAssignments(form.id)
-        // loadDocuments(form.id)
     }
 
     function close() {
@@ -215,9 +218,13 @@ export function useVehicleModal() {
 
         return {
             id_vehicle_type: form.id_vehicle_type,
+
+            // ✅ Truck/Trailer Number
             vehicle_name: toNullIfEmpty(form.vehicle_name),
 
+            // ✅ License Plate
             vehicle_number: toNullIfEmpty(form.vehicle_number),
+
             vehicle_vin: toNullIfEmpty(form.vehicle_vin),
             vehicle_year: (form.vehicle_year == null || form.vehicle_year === '') ? null : Number(form.vehicle_year),
 
@@ -228,8 +235,6 @@ export function useVehicleModal() {
             owner: toNullIfEmpty(form.owner),
             insurance_provider: (form.insurance_provider == null ? null : Number(form.insurance_provider)),
 
-            // ✅ send to backend (nullable)
-            license_plate: toNullIfEmpty(form.license_plate),
             registration_state_id: (form.registration_state_id == null || form.registration_state_id === '')
                 ? null
                 : Number(form.registration_state_id),
@@ -271,6 +276,34 @@ export function useVehicleModal() {
         }
     }
 
+    // ✅ Delete without popup
+    async function del() {
+        if (!canDelete.value) return { ok: false }
+        if (saving.value || deleting.value) return { ok: false }
+
+        deleting.value = true
+        errors.value = {}
+
+        try {
+            const res = await apiVmDeleteVehicle(form.id)
+
+            if (res && res.ok === false) {
+                const n = normalizeErrorsFromRes(res)
+                errors.value = { _error: n._error, ...n.fields }
+                return { ok: false }
+            }
+
+            open.value = false
+            return { ok: true }
+        } catch (e) {
+            const n = normalizeErrorsFromException(e)
+            errors.value = { _error: n._error, ...n.fields }
+            return { ok: false }
+        } finally {
+            deleting.value = false
+        }
+    }
+
     function onTabClick(tab, vehicleId) {
         activeTab.value = tab
         if (tab === 'assignment') loadAssignments(vehicleId)
@@ -281,14 +314,17 @@ export function useVehicleModal() {
         open,
         mode,
         saving,
+        deleting,
         errors,
         form,
         billingOn,
+        canDelete,
         insuranceProviderOptions,
         openCreate,
         openEdit,
         close,
         save,
+        del,
 
         activeTab,
         assignments,

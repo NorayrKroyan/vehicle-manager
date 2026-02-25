@@ -41,11 +41,22 @@ class VehiclesController extends Controller
     {
         $payload = $this->normalizeBilling($request->validated());
 
-        // TEMP: ensure vehicle_name is never null (DB requires it)
         $payload['vehicle_name'] = trim((string)($payload['vehicle_name'] ?? ''));
+
+        $vehicleNumber = trim((string)($payload['vehicle_number'] ?? ''));
+        $licensePlate  = trim((string)($payload['license_plate'] ?? ''));
+
+        // ✅ license_plate should be saved under vehicle_number
+        // Prefer license_plate if provided, otherwise keep vehicle_number
+        $payload['vehicle_number'] = ($licensePlate !== '') ? $licensePlate : $vehicleNumber;
+
+        // Ensure vehicle_name is never empty (DB NOT NULL)
         if ($payload['vehicle_name'] === '') {
             $payload['vehicle_name'] = (string)($payload['vehicle_number'] ?? '');
         }
+
+        // If DB doesn't have license_plate column, don't insert it
+        unset($payload['license_plate']);
 
         $id = $q->insert($payload);
 
@@ -57,11 +68,32 @@ class VehiclesController extends Controller
         $payload = $this->normalizeBilling($request->validated());
 
         $payload['vehicle_name'] = trim((string)($payload['vehicle_name'] ?? ''));
+
+        $vehicleNumber = trim((string)($payload['vehicle_number'] ?? ''));
+        $licensePlate  = trim((string)($payload['license_plate'] ?? ''));
+
+        // ✅ Same mapping on update
+        $payload['vehicle_number'] = ($licensePlate !== '') ? $licensePlate : $vehicleNumber;
+
         if ($payload['vehicle_name'] === '') {
             $payload['vehicle_name'] = (string)($payload['vehicle_number'] ?? '');
         }
 
+        unset($payload['license_plate']);
+
         $q->update($id, $payload);
+
+        return response()->json(['ok' => true]);
+    }
+
+    // ✅ DELETE endpoint
+    public function destroy(int $id, VehiclesQuery $q): JsonResponse
+    {
+        $row = $q->one($id);
+        if (!$row) return response()->json(['ok' => false, 'error' => 'Vehicle not found'], 404);
+
+        // You decide: hard delete or soft delete inside VehiclesQuery
+        $q->delete($id);
 
         return response()->json(['ok' => true]);
     }

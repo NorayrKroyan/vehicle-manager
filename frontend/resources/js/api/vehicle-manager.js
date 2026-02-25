@@ -1,4 +1,3 @@
-// resources/js/api/vehicle-manager.js
 import { fetchJson } from './fetchJson'
 
 export function apiVmLookups() {
@@ -22,6 +21,11 @@ export function apiVmCreateVehicle(payload) {
 
 export function apiVmUpdateVehicle(id, payload) {
     return fetchJson(`/api/vehicle-manager/vehicles/${id}`, { method: 'PUT', data: payload })
+}
+
+// ✅ NEW
+export function apiVmDeleteVehicle(id) {
+    return fetchJson(`/api/vehicle-manager/vehicles/${id}`, { method: 'DELETE' })
 }
 
 export function apiVmAssignments(vehicleId) {
